@@ -11,22 +11,22 @@ import {
     AgentRuntime,
     CacheManager,
     Character,
-    Clients,
+    // Clients,
     DbCacheAdapter,
     defaultCharacter,
     c3poCharacter,
-    trollDetectiveCharacter,
+    bunsCharacter,
     elizaLogger,
     FsCacheAdapter,
-    IAgentRuntime,
-    ICacheManager,
-    IDatabaseAdapter,
-    IDatabaseCacheAdapter,
     ModelProviderName,
     settings,
     stringToUuid,
     validateCharacterConfig,
     CacheStore,
+    IAgentRuntime,
+    ICacheManager,
+    IDatabaseAdapter,
+    IDatabaseCacheAdapter,
 } from "@elizaos/core";
 import { RedisClient } from "@elizaos/adapter-redis";
 import { zgPlugin } from "@elizaos/plugin-0g";
@@ -748,7 +748,7 @@ const startAgents = async () => {
     let characters: ExtendedCharacter[] = [
         { ...defaultCharacter, defaultCharacter: true },
         { ...c3poCharacter, defaultCharacter: false },
-        { ...trollDetectiveCharacter, defaultCharacter: false }
+        { ...bunsCharacter, defaultCharacter: false }
     ] as ExtendedCharacter[];
 
     if (charactersArg) {

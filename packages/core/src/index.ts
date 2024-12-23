@@ -9,6 +9,7 @@ export * from "./evaluators.ts";
 export * from "./generation.ts";
 export * from "./goals.ts";
 export * from "./memory.ts";
+export * from "./mates/index.ts";
 export * from "./messages.ts";
 export * from "./models.ts";
 export * from "./posts.ts";
