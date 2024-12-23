@@ -14,6 +14,8 @@ import {
     Clients,
     DbCacheAdapter,
     defaultCharacter,
+    c3poCharacter,
+    trollDetectiveCharacter,
     elizaLogger,
     FsCacheAdapter,
     IAgentRuntime,
@@ -111,13 +113,41 @@ function isAllStrings(arr: unknown[]): boolean {
     return Array.isArray(arr) && arr.every((item) => typeof item === "string");
 }
 
+// import type { Character } from "@elizaos/core";
+type ExtendedCharacter = Character & { defaultCharacter: boolean };
+
 export async function loadCharacters(
     charactersArg: string
-): Promise<Character[]> {
+): Promise<ExtendedCharacter[]> {
     let characterPaths = charactersArg
         ?.split(",")
         .map((filePath) => filePath.trim());
-    const loadedCharacters = [];
+        const loadedCharacters = [
+            { ...defaultCharacter, defaultCharacter: true },
+            ...(await Promise.all(
+                characterPaths.map(async (filePath) => {
+                    const content = tryLoadFile(filePath);
+                    if (!content) {
+                        elizaLogger.error(
+                            `Character file not found: ${filePath}`
+                        );
+                        return null;
+                    }
+                    try {
+                        const characterConfig = JSON.parse(content);
+                        validateCharacterConfig(characterConfig);
+                        return { ...characterConfig, defaultCharacter: false };
+                    } catch (error) {
+                        elizaLogger.error(
+                            `Error parsing character file: ${filePath}`,
+                            error
+                        );
+                        return null;
+                    }
+                })
+            )
+        ).filter((character) => !!character) as ExtendedCharacter[]
+    ];
 
     if (characterPaths?.length > 0) {
         for (const characterPath of characterPaths) {
@@ -203,10 +233,10 @@ export async function loadCharacters(
 
     if (loadedCharacters.length === 0) {
         elizaLogger.info("No characters found, using default character");
-        loadedCharacters.push(defaultCharacter);
+        loadedCharacters.push({ ...defaultCharacter, defaultCharacter: true });
     }
 
-    return loadedCharacters;
+    return loadedCharacters as ExtendedCharacter[];
 }
 
 export function getTokenForProvider(
@@ -363,6 +393,22 @@ export async function initializeClients(
 ) {
     // each client can only register once
     // and if we want two we can explicitly support it
+    // If client is an object with specific properties
+
+    enum Clients {
+        DISCORD = "discord",
+        DIRECT = "direct",
+        TWITTER = "twitter",
+        TELEGRAM = "telegram",
+        FARCASTER = "farcaster",
+        LENS = "lens",
+        AUTO = "auto",
+        SLACK = "slack"
+    }
+    interface IAgentConfig {
+        [key: string]: string;
+    }
+
     const clients: Record<string, any> = {};
     const clientTypes: string[] =
         character.clients?.map((str) => str.toLowerCase()) || [];
@@ -385,9 +431,8 @@ export async function initializeClients(
 
     if (clientTypes.includes(Clients.TWITTER)) {
         const twitterClient = await TwitterClientInterface.start(runtime);
-
         if (twitterClient) {
-            clients.twitter = twitterClient;
+            clients.twitter = twitterClient as Character;
             (twitterClient as any).enableSearch = !isFalsish(
                 getSecret(character, "TWITTER_SEARCH_ENABLE")
             );
@@ -423,6 +468,7 @@ export async function initializeClients(
             if (plugin.clients) {
                 for (const client of plugin.clients) {
                     const startedClient = await client.start(runtime);
+                    // @ts-ignore
                     clients[client.name] = startedClient; // Assuming client has a name property
                 }
             }
@@ -699,10 +745,19 @@ const startAgents = async () => {
 
     let charactersArg = args.characters || args.character;
 
-    let characters = [defaultCharacter];
+    let characters: ExtendedCharacter[] = [
+        { ...defaultCharacter, defaultCharacter: true },
+        { ...c3poCharacter, defaultCharacter: false },
+        { ...trollDetectiveCharacter, defaultCharacter: false }
+    ] as ExtendedCharacter[];
 
     if (charactersArg) {
-        characters = await loadCharacters(charactersArg);
+        const loadedChars = await loadCharacters(charactersArg);
+        characters = loadedChars.map(char => ({
+            ...defaultCharacter,  // Provide default values
+            ...char,             // Override with loaded character values
+            defaultCharacter: false
+        }));
     }
 
     try {

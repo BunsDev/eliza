@@ -1,4 +1,4 @@
-import { defaultCharacter } from "../defaultCharacter";
+import { defaultCharacter } from "../mates/default";
 import { ModelProviderName } from "../types";
 
 describe("defaultCharacter", () => {

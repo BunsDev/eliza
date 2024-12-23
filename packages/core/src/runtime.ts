@@ -6,7 +6,9 @@ import {
     formatActions,
 } from "./actions.ts";
 import { addHeader, composeContext } from "./context.ts";
-import { defaultCharacter } from "./defaultCharacter.ts";
+import { defaultCharacter } from "./mates/default.ts";
+import { c3poCharacter } from "./mates/c3po.ts";
+import { bunsCharacter } from "./mates/buns.ts";
 import {
     evaluationTemplate,
     formatEvaluatorExamples,
@@ -244,7 +246,11 @@ export class AgentRuntime implements IAgentRuntime {
             opts.character?.id ??
             opts?.agentId ??
             stringToUuid(opts.character?.name ?? uuidv4());
-        this.character = opts.character || defaultCharacter;
+        this.character =
+            opts.character ||
+            defaultCharacter ||
+            c3poCharacter ||
+            bunsCharacter;
 
         // By convention, we create a user and room using the agent id.
         // Memories related to it are considered global context for the agent.
@@ -410,22 +416,27 @@ export class AgentRuntime implements IAgentRuntime {
     }
 
     async stop() {
-      elizaLogger.debug('runtime::stop - character', this.character)
-      // stop services, they don't have a stop function
+        elizaLogger.debug("runtime::stop - character", this.character);
+        // stop services, they don't have a stop function
         // just initialize
 
-      // plugins
+        // plugins
         // have actions, providers, evaluators (no start/stop)
         // services (just initialized), clients
 
-      // client have a start
-      for(const cStr in this.clients) {
-        const c = this.clients[cStr]
-        elizaLogger.log('runtime::stop - requesting', cStr, 'client stop for', this.character.name)
-        c.stop()
-      }
-      // we don't need to unregister with directClient
-      // don't need to worry about knowledge
+        // client have a start
+        for (const cStr in this.clients) {
+            const c = this.clients[cStr];
+            elizaLogger.log(
+                "runtime::stop - requesting",
+                cStr,
+                "client stop for",
+                this.character.name
+            );
+            c.stop();
+        }
+        // we don't need to unregister with directClient
+        // don't need to worry about knowledge
     }
 
     /**
